@@ -48,6 +48,28 @@ func CBCEncrypt(msg, iv, key []byte) ([]byte, error) {
 	return res, nil
 }
 
+func CBCDecrypt(text, iv, key []byte) []byte {
+	blocks := chunkBy(text, 16)
+
+	resBlocks := make([][]byte, 0)
+	for i, b := range blocks {
+		b = ECBDecrypt(b, key)
+		if i == 0 {
+			b = RepeatingKeyXOR(b, iv)
+		} else {
+			b = RepeatingKeyXOR(b, resBlocks[i-1])
+		}
+		resBlocks = append(resBlocks, b)
+	}
+
+	var res []byte
+	for _, b := range resBlocks {
+		res = append(res, b...)
+	}
+
+	return res
+}
+
 func ECBEncrypt(msg, key []byte) []byte {
 	cipher, _ := aes.NewCipher([]byte(key))
 	encrypted := make([]byte, len(msg))

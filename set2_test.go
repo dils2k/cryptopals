@@ -17,6 +17,17 @@ func TestCBCEncrypt(t *testing.T) {
 	fmt.Println(bytes2hex(res))
 }
 
+func TestCBCDecrypt(t *testing.T) {
+	msg := []byte("shisui")
+	iv := []byte("some")
+	key := []byte("YELLOW SUBMARINE")
+
+	text, _ := CBCEncrypt(msg, iv, key)
+	if res := CBCDecrypt(text, iv, key); !reflect.DeepEqual(res, msg) {
+		t.Fatal("invalid result of decryption", string(res)) // TODO: fails coz I need to remove padding in decryption
+	}
+}
+
 func TestECBEncrypt(t *testing.T) {
 	msg := []byte("YELLOW SUBMARINEYELLOW SUBMARINE")
 	key := []byte("YELLOW SUBMARINE")
