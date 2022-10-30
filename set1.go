@@ -137,6 +137,28 @@ func ECBDecrypt(msg, key []byte) []byte {
 	return decrypted
 }
 
+func DetectECB(lines [][]byte) []byte {
+	for _, l := range lines {
+		blocks := chunkBy(l, 16)
+		for i, b := range blocks {
+			for _, ob := range blocks[i+1:] {
+				equal := true
+				for j := range b {
+					if b[j] != ob[j] {
+						equal = false
+						break
+					}
+				}
+				if equal {
+					return l
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
 func chunkBy[T any](items []T, chunkSize int) (chunks [][]T) {
 	for chunkSize < len(items) {
 		items, chunks = items[chunkSize:], append(chunks, items[0:chunkSize:chunkSize])
