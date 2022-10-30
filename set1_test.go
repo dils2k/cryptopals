@@ -60,6 +60,21 @@ func TestBreakRepeatingXOR(t *testing.T) {
 	fmt.Println(string(RepeatingKeyXOR(dat, key)))
 }
 
+func TestECBDecrypt(t *testing.T) {
+	datb64, err := os.ReadFile("./challenge-data/7.txt")
+	if err != nil {
+		log.Fatal("can't open a file", err)
+	}
+
+	dat := make([]byte, base64.StdEncoding.DecodedLen(len(datb64)))
+	if _, err := base64.StdEncoding.Decode(dat, datb64); err != nil {
+		log.Fatal("can't decode base64", err)
+	}
+
+	res := ECBDecrypt(dat, []byte("YELLOW SUBMARINE"))
+	fmt.Println(string(res))
+}
+
 func TestHammingDistance(t *testing.T) {
 	fmt.Println(hammingDistance([]byte("this is a test"), []byte("wokka wokka!!!")))
 }

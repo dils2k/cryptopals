@@ -1,6 +1,7 @@
 package cryptopals
 
 import (
+	"crypto/aes"
 	"encoding/base64"
 	"log"
 	"math"
@@ -121,6 +122,19 @@ func BreakRepeatingXOR(s []byte) []byte {
 	}
 
 	return key
+}
+
+func ECBDecrypt(msg, key []byte) []byte {
+	cipher, _ := aes.NewCipher([]byte(key))
+	decrypted := make([]byte, len(msg))
+
+	size := cipher.BlockSize()
+
+	for bs, be := 0, size; bs < len(msg); bs, be = bs+size, be+size {
+		cipher.Decrypt(decrypted[bs:be], msg[bs:be])
+	}
+
+	return decrypted
 }
 
 func chunkBy[T any](items []T, chunkSize int) (chunks [][]T) {
