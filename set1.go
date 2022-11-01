@@ -125,7 +125,7 @@ func BreakRepeatingXOR(s []byte) []byte {
 }
 
 func ECBDecrypt(msg, key []byte) []byte {
-	cipher, _ := aes.NewCipher([]byte(key))
+	cipher, _ := aes.NewCipher(key)
 	decrypted := make([]byte, len(msg))
 
 	size := cipher.BlockSize()

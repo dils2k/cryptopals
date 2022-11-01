@@ -29,9 +29,7 @@ func CBCEncrypt(msg, iv, key []byte) ([]byte, error) {
 	resBlocks := make([][]byte, 0)
 	blocks := chunkBy(msg, 16)
 	for i, b := range blocks {
-		if i == len(blocks)-1 {
-			b = padding(b, 16)
-		}
+		b = padding(b, 16)
 		if i == 0 {
 			b = RepeatingKeyXOR(b, iv)
 		} else {
@@ -57,21 +55,26 @@ func CBCDecrypt(text, iv, key []byte) []byte {
 		if i == 0 {
 			b = RepeatingKeyXOR(b, iv)
 		} else {
-			b = RepeatingKeyXOR(b, resBlocks[i-1])
+			b = RepeatingKeyXOR(b, blocks[i-1])
 		}
 		resBlocks = append(resBlocks, b)
 	}
 
 	var res []byte
-	for _, b := range resBlocks {
-		res = append(res, b...)
+	for i, b := range resBlocks {
+		for _, bb := range b {
+			if i == len(resBlocks)-1 && bb == 4 {
+				continue // ignore padding
+			}
+			res = append(res, bb)
+		}
 	}
 
 	return res
 }
 
 func ECBEncrypt(msg, key []byte) []byte {
-	cipher, _ := aes.NewCipher([]byte(key))
+	cipher, _ := aes.NewCipher(key)
 	encrypted := make([]byte, len(msg))
 
 	size := cipher.BlockSize()

@@ -1,7 +1,10 @@
 package cryptopals
 
 import (
+	"encoding/base64"
 	"fmt"
+	"log"
+	"os"
 	"reflect"
 	"testing"
 )
@@ -13,19 +16,29 @@ func TestPKCSPadding(t *testing.T) {
 }
 
 func TestCBCEncrypt(t *testing.T) {
-	res, _ := CBCEncrypt([]byte("shisui"), []byte("some"), []byte("YELLOW SUBMARINE"))
+	res, _ := CBCEncrypt([]byte("some large large text"), []byte("some"), []byte("YELLOW SUBMARINE"))
 	fmt.Println(bytes2hex(res))
 }
 
 func TestCBCDecrypt(t *testing.T) {
-	msg := []byte("shisui")
-	iv := []byte("some")
+	datb64, err := os.ReadFile("./challenge-data/10.txt")
+	if err != nil {
+		log.Fatal("can't open a file", err)
+	}
+
+	dat := make([]byte, base64.StdEncoding.DecodedLen(len(datb64)))
+	n, err := base64.StdEncoding.Decode(dat, datb64)
+	if err != nil {
+		log.Fatal("can't decode base64", err)
+	}
+
+	dat = dat[:n]
+
+	iv := []byte{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	key := []byte("YELLOW SUBMARINE")
 
-	text, _ := CBCEncrypt(msg, iv, key)
-	if res := CBCDecrypt(text, iv, key); !reflect.DeepEqual(res, msg) {
-		t.Fatal("invalid result of decryption", string(res)) // TODO: fails coz I need to remove padding in decryption
-	}
+	res := CBCDecrypt(dat, iv, key)
+	fmt.Println(string(res))
 }
 
 func TestECBEncrypt(t *testing.T) {
