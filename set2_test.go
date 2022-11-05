@@ -1,6 +1,7 @@
 package cryptopals
 
 import (
+	"bytes"
 	"encoding/base64"
 	"fmt"
 	"log"
@@ -47,4 +48,18 @@ func TestECBEncrypt(t *testing.T) {
 	if res := ECBDecrypt(ECBEncrypt(msg, key), key); !reflect.DeepEqual(res, msg) {
 		t.Fatal("invalid result of decryption", string(res))
 	}
+}
+
+func TestDetectECBORCBC(t *testing.T) {
+	var ecb, cbc int
+	for i := 0; i < 1000; i++ {
+		msg := ECBORCBCEncrypt(bytes.Repeat([]byte{16}, 16*3))
+		if DetectECB([][]byte{msg}) != nil {
+			ecb++
+		} else {
+			cbc++
+		}
+	}
+
+	fmt.Println(ecb, cbc)
 }

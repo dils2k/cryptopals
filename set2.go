@@ -3,6 +3,8 @@ package cryptopals
 import (
 	"crypto/aes"
 	"errors"
+	"math/rand"
+	"time"
 )
 
 func padding(msg []byte, blen int) []byte {
@@ -75,13 +77,51 @@ func CBCDecrypt(text, iv, key []byte) []byte {
 
 func ECBEncrypt(msg, key []byte) []byte {
 	cipher, _ := aes.NewCipher(key)
-	encrypted := make([]byte, len(msg))
+	encryptedBlocks := make([][]byte, 0)
+	blocks := chunkBy(msg, cipher.BlockSize())
+	for i, b := range blocks {
+		encryptedBlocks = append(encryptedBlocks, make([]byte, cipher.BlockSize()))
+		cipher.Encrypt(encryptedBlocks[i], padding(b, cipher.BlockSize()))
+	}
 
-	size := cipher.BlockSize()
-
-	for bs, be := 0, size; bs < len(msg); bs, be = bs+size, be+size {
-		cipher.Encrypt(encrypted[bs:be], msg[bs:be])
+	var encrypted []byte
+	for _, b := range encryptedBlocks {
+		encrypted = append(encrypted, b...)
 	}
 
 	return encrypted
+}
+
+func generateAESKey() []byte {
+	res := make([]byte, 16)
+	for i := 0; i < 16; i++ {
+		res[i] = byte(rand.Intn(256))
+	}
+	return res
+}
+
+func ECBORCBCEncrypt(msg []byte) []byte {
+	key := generateAESKey()
+
+	randappendNum := rand.Intn(5) + 5
+	randappend := make([]byte, randappendNum)
+	for i := 0; i < randappendNum; i++ {
+		randappend[i] = byte(rand.Intn(256))
+	}
+
+	msg = append(randappend, append(msg, randappend...)...)
+
+	var encrypted []byte
+
+	if rand.Intn(2) == 0 {
+		encrypted = ECBEncrypt(msg, key)
+	} else {
+		encrypted, _ = CBCEncrypt(msg, []byte{0}, key)
+	}
+
+	return encrypted
+}
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
 }
