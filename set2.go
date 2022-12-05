@@ -1,9 +1,13 @@
 package cryptopals
 
 import (
+	"bytes"
 	"crypto/aes"
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
-	"math/rand"
+	mathrand "math/rand"
+	"reflect"
 	"time"
 )
 
@@ -94,26 +98,23 @@ func ECBEncrypt(msg, key []byte) []byte {
 
 func generateAESKey() []byte {
 	res := make([]byte, 16)
-	for i := 0; i < 16; i++ {
-		res[i] = byte(rand.Intn(256))
-	}
+	rand.Read(res)
 	return res
 }
 
 func ECBORCBCEncrypt(msg []byte) []byte {
 	key := generateAESKey()
 
-	randappendNum := rand.Intn(5) + 5
+	randappendNum := mathrand.Intn(5) + 5
 	randappend := make([]byte, randappendNum)
 	for i := 0; i < randappendNum; i++ {
-		randappend[i] = byte(rand.Intn(256))
+		randappend[i] = byte(mathrand.Intn(256))
 	}
 
 	msg = append(randappend, append(msg, randappend...)...)
 
 	var encrypted []byte
-
-	if rand.Intn(2) == 0 {
+	if mathrand.Intn(2) == 0 {
 		encrypted = ECBEncrypt(msg, key)
 	} else {
 		encrypted, _ = CBCEncrypt(msg, []byte{0}, key)
@@ -122,6 +123,108 @@ func ECBORCBCEncrypt(msg []byte) []byte {
 	return encrypted
 }
 
+func ECBCipher() func([]byte) []byte {
+	bs64append := "Um9sbGluJyBpbiBteSA1LjAKV2l0aCBteSByYWctdG9wIGRvd24gc28gbXkg" +
+		"aGFpciBjYW4gYmxvdwpUaGUgZ2lybGllcyBvbiBzdGFuZGJ5IHdhdmluZyBq" +
+		"dXN0IHRvIHNheSBoaQpEaWQgeW91IHN0b3A/IE5vLCBJIGp1c3QgZHJvdmUg" +
+		"YnkK"
+
+	plainAppend, _ := base64.StdEncoding.DecodeString(bs64append)
+
+	key := generateAESKey()
+	randAppend := make([]byte, mathrand.Intn(5)+5)
+	rand.Read(randAppend)
+
+	return func(msg []byte) []byte {
+		msg = append(msg, plainAppend...)
+		return ECBEncrypt(append(randAppend, append(msg, randAppend...)...), key)
+	}
+}
+
+func ByteAtTimeECBDecrypter() []byte {
+	encrypt := ECBCipher()
+
+	var (
+		b = []byte("0")
+
+		firstLen         = len(encrypt(b))
+		blocksize        = 0
+		secondBlockStart = 0
+	)
+
+	for i := 2; ; i++ {
+		if len(encrypt(bytes.Repeat(b, i))) > firstLen && secondBlockStart == 0 {
+			secondBlockStart = i
+		}
+
+		if len(encrypt(bytes.Repeat(b, i))) > len(encrypt(bytes.Repeat(b, secondBlockStart))) && secondBlockStart != 0 {
+			blocksize = i - secondBlockStart
+			break
+		}
+	}
+
+	if !DetectECB(encrypt(bytes.Repeat(b, 100))) {
+		panic("ecb was not detected")
+	}
+
+	var (
+		appendBlocks   = len(chunkBy(encrypt([]byte{}), blocksize))
+		alignBytes     = bytes.Repeat(b, blocksize*2)
+		idenBlockIndex int
+		found          bool
+	)
+
+	for {
+		idenBlockIndex, found = finddup(chunkBy(encrypt(alignBytes), blocksize))
+		if found {
+			break
+		}
+		alignBytes = append(alignBytes, b...)
+	}
+
+	var (
+		m                    = bytes.Repeat(b, blocksize*appendBlocks+len(alignBytes)+blocksize)
+		controlledBlockIndex = appendBlocks + idenBlockIndex + 1
+		decrypted            = make([]byte, 0)
+	)
+
+	for {
+		m = m[1:]
+
+		cipher := encrypt(m)
+		if len(chunkBy(cipher, blocksize))-1 < controlledBlockIndex {
+			break
+		}
+
+		allpos := make(map[string]byte)
+		for i := 0; i < 255; i++ {
+			plain := append(m, append(decrypted, byte(i))...)
+			ciphertext := encrypt(plain)
+			controlledBlock := chunkBy(ciphertext, blocksize)[controlledBlockIndex]
+			allpos[string(controlledBlock)] = byte(i)
+		}
+
+		controlledBlock := chunkBy(cipher, blocksize)[controlledBlockIndex]
+		b, ok := allpos[string(controlledBlock)]
+		if !ok {
+			panic("can't find byte")
+		}
+
+		decrypted = append(decrypted, b)
+	}
+
+	return decrypted
+}
+
+func finddup[T any](a []T) (int, bool) {
+	for i := 1; i < len(a); i++ {
+		if reflect.DeepEqual(a[i], a[i-1]) {
+			return i, true
+		}
+	}
+	return 0, false
+}
+
 func init() {
-	rand.Seed(time.Now().UnixNano())
+	mathrand.Seed(time.Now().UnixNano())
 }

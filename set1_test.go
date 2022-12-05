@@ -79,19 +79,19 @@ func TestECBDecrypt(t *testing.T) {
 }
 
 func TestDetectECB(t *testing.T) {
-	dat, err := os.ReadFile("./challenge-data/8.txt")
-	if err != nil {
-		log.Fatal("can't open a file", err)
-	}
+	// dat, err := os.ReadFile("./challenge-data/8.txt")
+	// if err != nil {
+	// 	log.Fatal("can't open a file", err)
+	// }
 
-	strLines := strings.Split(string(dat), "\n")
+	// strLines := strings.Split(string(dat), "\n")
 
-	var lines [][]byte
-	for _, l := range strLines {
-		lines = append(lines, hex2bytes(l))
-	}
+	// var lines [][]byte
+	// for _, l := range strLines {
+	// 	lines = append(lines, hex2bytes(l))
+	// }
 
-	fmt.Println(DetectECB(lines))
+	// fmt.Println(DetectECB(lines))
 }
 
 func TestHammingDistance(t *testing.T) {

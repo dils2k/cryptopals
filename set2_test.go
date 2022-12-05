@@ -6,8 +6,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestPKCSPadding(t *testing.T) {
@@ -17,8 +18,20 @@ func TestPKCSPadding(t *testing.T) {
 }
 
 func TestCBCEncrypt(t *testing.T) {
-	res, _ := CBCEncrypt([]byte("some large large text"), []byte("some"), []byte("YELLOW SUBMARINE"))
-	fmt.Println(bytes2hex(res))
+	var (
+		msg = []byte("some large large text")
+		iv  = []byte("some")
+		key = []byte("YELLOW SUBMARINE")
+	)
+
+	cipher, _ := CBCEncrypt(msg, iv, key)
+
+	res := CBCDecrypt(cipher, iv, key)
+	if !cmp.Equal(res, msg) {
+		log.Fatalf("invalid decrypt output: %s - %s", string(msg), string(res))
+	}
+
+	fmt.Println(string(res))
 }
 
 func TestCBCDecrypt(t *testing.T) {
@@ -45,8 +58,16 @@ func TestCBCDecrypt(t *testing.T) {
 func TestECBEncrypt(t *testing.T) {
 	msg := []byte("YELLOW SUBMARINEYELLOW SUBMARINE")
 	key := []byte("YELLOW SUBMARINE")
-	if res := ECBDecrypt(ECBEncrypt(msg, key), key); !reflect.DeepEqual(res, msg) {
+	if res := ECBDecrypt(ECBEncrypt(msg, key), key); !cmp.Equal(res, msg) {
 		t.Fatal("invalid result of decryption", string(res))
+	}
+}
+
+func TestECBEncrypt2(t *testing.T) {
+	res := ECBEncrypt(bytes.Repeat([]byte("1"), 16*3), generateAESKey())
+	fmt.Println(len(res))
+	for _, v := range chunkBy(res, 16) {
+		fmt.Println(v)
 	}
 }
 
@@ -54,7 +75,7 @@ func TestDetectECBORCBC(t *testing.T) {
 	var ecb, cbc int
 	for i := 0; i < 1000; i++ {
 		msg := ECBORCBCEncrypt(bytes.Repeat([]byte{16}, 16*3))
-		if DetectECB([][]byte{msg}) != nil {
+		if DetectECB(msg) {
 			ecb++
 		} else {
 			cbc++
@@ -62,4 +83,8 @@ func TestDetectECBORCBC(t *testing.T) {
 	}
 
 	fmt.Println(ecb, cbc)
+}
+
+func TestByteAtTimeECBDecrypter(t *testing.T) {
+	fmt.Println(string(ByteAtTimeECBDecrypter()))
 }
