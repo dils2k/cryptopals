@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"reflect"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -98,11 +99,22 @@ func TestEncodeKV(t *testing.T) {
 	fmt.Println(string(EncodeKV(kv)))
 }
 
-// func TestProfileFor(t *testing.T) {
-// 	profileFor := NewProfileFor()
-// 	fmt.Println(profileFor([]byte("dils.matchanov@gmail.com")))
-// }
-
 func TestCrackProfileFor(t *testing.T) {
 	CrackProfileFor()
+}
+
+func TestPaddingValidation(t *testing.T) {
+	res, err := validatePadding([]byte("ICE ICE BABY\x04\x04\x04\x04"))
+	if err != nil {
+		t.Fatal("valid padding validation failed")
+	}
+
+	exp := []byte("ICE ICE BABY")
+	if !reflect.DeepEqual(res, exp) {
+		t.Fatalf("expected %s but got %s", string(exp), string(res))
+	}
+
+	if _, err := validatePadding([]byte("ICE ICE BABY\x01\x02\x03\x04")); err == nil {
+		t.Fatalf("invalid padding didn't return error")
+	}
 }

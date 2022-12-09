@@ -288,6 +288,25 @@ func CrackProfileFor() {
 	fmt.Println(string(decrypt(cipher)))
 }
 
+func validatePadding(s []byte) ([]byte, error) {
+	if len(s) != 16 {
+		panic("block length must be 16")
+	}
+
+	var padStart int
+	for i, b := range s {
+		if b == 4 && padStart == 0 {
+			padStart = i
+		}
+
+		if b >= 0 && b <= 31 && b != 4 {
+			return nil, errors.New("validation failed")
+		}
+	}
+
+	return s[:padStart], nil
+}
+
 func init() {
 	mathrand.Seed(time.Now().UnixNano())
 }
