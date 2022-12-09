@@ -88,3 +88,21 @@ func TestDetectECBORCBC(t *testing.T) {
 func TestByteAtTimeECBDecrypter(t *testing.T) {
 	fmt.Println(string(ByteAtTimeECBDecrypter()))
 }
+
+func TestParseKV(t *testing.T) {
+	fmt.Println(ParseKV([]byte("foo=bar&baz=qux&zap=zazzle")))
+}
+
+func TestEncodeKV(t *testing.T) {
+	kv := ParseKV([]byte("foo=bar&baz=qux&zap=zazzle"))
+	fmt.Println(string(EncodeKV(kv)))
+}
+
+// func TestProfileFor(t *testing.T) {
+// 	profileFor := NewProfileFor()
+// 	fmt.Println(profileFor([]byte("dils.matchanov@gmail.com")))
+// }
+
+func TestCrackProfileFor(t *testing.T) {
+	CrackProfileFor()
+}

@@ -6,8 +6,10 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"errors"
+	"fmt"
 	mathrand "math/rand"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -223,6 +225,67 @@ func finddup[T any](a []T) (int, bool) {
 		}
 	}
 	return 0, false
+}
+
+func ParseKV(msg []byte) map[string]string {
+	res := make(map[string]string)
+	for _, kvs := range strings.Split(string(msg), "&") {
+		kv := strings.Split(kvs, "=")
+		if len(kv) < 2 {
+			continue
+		}
+		res[kv[0]] = kv[1]
+	}
+	return res
+}
+
+func EncodeKV(in map[string]string) []byte {
+	validated := make(map[string]string)
+	for k, v := range in {
+		v = strings.ReplaceAll(strings.ReplaceAll(v, "&", ""), "=", "")
+		validated[k] = v
+	}
+	return []byte(fmt.Sprintf("email=%s&uid=%s&role=%s", in["email"], in["uid"], in["role"]))
+}
+
+func NewProfileFor() (func(name []byte) []byte, func(msg []byte) []byte) {
+	key := generateAESKey()
+
+	encrypt := func(name []byte) []byte {
+		kv := EncodeKV(map[string]string{
+			"email": string(name),
+			"uid":   "10",
+			"role":  "user",
+		})
+		return ECBEncrypt(kv, key)
+	}
+
+	decrypt := func(cipher []byte) []byte {
+		return ECBDecrypt(cipher, key)
+	}
+
+	return encrypt, decrypt
+}
+
+func CrackProfileFor() {
+	profileFor, decrypt := NewProfileFor()
+
+	// |email=0000000000|00&uid=10&role=|user
+
+	cipher := profileFor(bytes.Repeat([]byte(" "), 13))
+	cipher = cipher[:len(cipher)-16]
+
+	input := bytes.Repeat([]byte(" "), 10)
+	input = append(input, []byte("admin")...)
+	input = append(input, bytes.Repeat([]byte(" "), 11)...)
+
+	cipher2 := profileFor(input)
+	cipher2 = cipher2[16:]
+	cipher2 = cipher2[:16]
+
+	cipher = append(cipher, cipher2...)
+
+	fmt.Println(string(decrypt(cipher)))
 }
 
 func init() {
