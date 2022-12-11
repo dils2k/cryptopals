@@ -118,3 +118,7 @@ func TestPaddingValidation(t *testing.T) {
 		t.Fatalf("invalid padding didn't return error")
 	}
 }
+
+func TestCBCBitsFlipping(t *testing.T) {
+	CBCBitsFlipping()
+}

@@ -270,8 +270,6 @@ func NewProfileFor() (func(name []byte) []byte, func(msg []byte) []byte) {
 func CrackProfileFor() {
 	profileFor, decrypt := NewProfileFor()
 
-	// |email=0000000000|00&uid=10&role=|user
-
 	cipher := profileFor(bytes.Repeat([]byte(" "), 13))
 	cipher = cipher[:len(cipher)-16]
 
@@ -286,6 +284,68 @@ func CrackProfileFor() {
 	cipher = append(cipher, cipher2...)
 
 	fmt.Println(string(decrypt(cipher)))
+}
+
+func CBCUser() (
+	func(string) []byte,
+	func([]byte) bool,
+) {
+	var (
+		key  = generateAESKey()
+		iv   = generateAESKey()
+		prep = []byte("comment1=cooking%20MCs;userdata=")
+		app  = []byte(";comment2=%20like%20a%20pound%20of%20bacon")
+	)
+
+	getUser := func(payload string) []byte {
+		payload = strings.ReplaceAll(payload, ";", "\";\"")
+		payload = strings.ReplaceAll(payload, "=", "\"=\"")
+
+		msg := append(prep, append(padding([]byte(payload), 16), app...)...)
+
+		cipher, err := CBCEncrypt(msg, iv, key)
+		if err != nil {
+			panic(err)
+		}
+
+		return cipher
+	}
+
+	isAdmin := func(data []byte) bool {
+		decrypted := CBCDecrypt(data, iv, key)
+
+		if strings.Contains(string(decrypted), ";admin=true;") {
+			return true
+		}
+
+		return false
+	}
+
+	return getUser, isAdmin
+}
+
+func CBCBitsFlipping() {
+	getUser, isAdmin := CBCUser()
+
+	adminMsg := "AadminEtrueA"
+	payload := getUser(adminMsg)
+
+loop:
+	for i := 0; i < 255; i++ {
+		payload[16] = byte(i)
+
+		for j := 0; j < 255; j++ {
+			payload[16+6] = byte(j)
+
+			for k := 0; k < 255; k++ {
+				payload[16+len(adminMsg)-1] = byte(k)
+				if isAdmin(payload) {
+					fmt.Println("we are admins!")
+					break loop
+				}
+			}
+		}
+	}
 }
 
 func validatePadding(s []byte) ([]byte, error) {
