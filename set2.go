@@ -333,10 +333,8 @@ func CBCBitsFlipping() {
 loop:
 	for i := 0; i < 255; i++ {
 		payload[16] = byte(i)
-
 		for j := 0; j < 255; j++ {
 			payload[16+6] = byte(j)
-
 			for k := 0; k < 255; k++ {
 				payload[16+len(adminMsg)-1] = byte(k)
 				if isAdmin(payload) {
